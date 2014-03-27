@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='node_modules-restify_session'>/**
+</span> * @class node_modules.restify_session
+ * 
+ * @author Marcello Gesmundo
+ * 
+ * This module manage session for a restify server without cookies. It uses Redis (&gt;=2.0.0) as fast session store.
+ * Derived from redis-session.
+ * 
+ * # Example
+ * 
+ *      var restify = require('restify'),
+ *          session = require('restify-session')({
+ *              debug : true,
+ *              ttl   : 2
+ *          });
+ *      var server  = restify.createServer();
+ *
+ *      // attach session manager
+ *      server.use(session.sessionManager)
+ *
+ *      // attach a route
+ *      server.get('/', function(req, res, next){
+ *         res.send({ success: true, session: req.session });
+ *         return next();
+ *      });
+ *
+ *      // start the server
+ *      server.listen(3000);
+ *
+ *      // Save this file as server.js and start it in a terminal window:
+ *
+ *      $ node server.js
+ *
+ *      // Open your browser and put the address of your server:
+ *
+ *      http://localhost:3000
+ *
+ *      // Now you see an answer like this:
+ *
+ *      {&quot;success&quot;:true,&quot;session&quot;:{&quot;sid&quot;:&quot;ViS5pHE5n8McblTATbyFUJTGJyzVFeXOcAEZ41Zs&quot;}}
+ *
+ *      // You can see your session id (sid) into the response header:
+ *
+ *      Session-Id ViS5pHE5n8McblTATbyFUJTGJyzVFeXOcAEZ41Zs
+ *
+ * For more information see test/test.js into package folder.
+ * 
+ *  
+ * 
+ * # License
+ * 
+ * Copyright (c) 2012 Mitchell Simoens (https://github.com/mitchellsimoens/redis-session)
+ *
+ * Copyright (c) 2012-2014 Yoovant by Marcello Gesmundo. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ * 
+ *    * Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above
+ *      copyright notice, this list of conditions and the following
+ *      disclaimer in the documentation and/or other materials provided
+ *      with the distribution.
+ *    * Neither the name of Yoovant nor the names of its
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
+ *      
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+module.exports = function(config) {
+  // namespace
+  var session = {};
+  var redis   = require('redis');
+  var utils   = require('object_utils');
+  var Random  = require('secure-rnd');
+  var rnd     = new Random();
+<span id='global-property-name'>  /**
+</span>   * @ignore
+   * @private
+   */
+  session.name = 'session';
+
+<span id='global-property-merge'>  /**
+</span>   * @ignore
+   * @private
+   */
+  session.merge = utils.merge;
+
+  config = config || {};
+<span id='node_modules-restify_session-property-config'>  /**
+</span>   * Configuration
+   */
+  session.config = {
+<span id='node_modules-restify_session-cfg-ttl'>    /**
+</span>     * @cfg {Integer} ttl=600 The time to live for the session in seconds
+     */
+    ttl: 600, // 10min
+<span id='node_modules-restify_session-cfg-debug'>    /**
+</span>     * @cfg {Boolean} debug=true true to enable debug session
+     */
+    debug: false,
+<span id='node_modules-restify_session-cfg-logger'>    /**
+</span>     * @cfg {Object} logger=console The logger. If you use winston set your desired log level and set debug = true.
+     */
+    logger: console,
+<span id='node_modules-restify_session-cfg-sidLength'>    /**
+</span>     * @cfg {Integer} sidLength=40 The number of characters to create the session ID.
+     */
+    sidLength: 40,
+<span id='node_modules-restify_session-cfg-persist'>    /**
+</span>     * @cfg {Boolean} persist=false Persistence of session
+     * If persist is false, the session will expire after the ttl config.
+     * If persist is true, the session will never expire and ttl config will be ignored.
+     */
+    persist: false,
+<span id='node_modules-restify_session-cfg-connection'>    /**
+</span>     * @cfg {connection} connection REDIS connection information
+     * @cfg {Number} connection.port=6379 REDIS port
+     * @cfg {String} connection.host='127.0.0.1' REDIS host
+     * @cfg {String} [connection.db] REDIS database
+     * @cfg {String} [connection.user] REDIS user
+     * @cfg {String} [connection.pass] REDIS pssword
+     */
+    connection: {
+      port: 6379,
+      host: '127.0.0.1',
+      db  : undefined,
+      user: undefined,
+      pass: undefined
+    },
+<span id='node_modules-restify_session-cfg-sidHeader'>    /**
+</span>     * @cfg {String} sidHeader='Session-Id' The Header section name to store the session identifier
+     */
+    sidHeader: 'Session-Id'
+  };
+
+  // merge new config with default config
+  session.merge(session.config, config);
+
+  if ('function' !== typeof session.config.logger.debug) {
+    session.config.logger.debug = session.config.logger.log;
+  }
+  if ('function' !== typeof session.config.logger.error) {
+    session.config.logger.error = session.config.logger.log;
+  }
+  if ('function' !== typeof session.config.logger.info) {
+    session.config.logger.info = session.config.logger.log;
+  }
+
+  var cfg = session.config,
+      con = cfg.connection;
+
+  // create redis client
+  session.client = new redis.createClient(con.port, cfg.host, con);
+
+  var isNull = utils.isNull;
+
+  if (con.pass &amp;&amp; con.pass.length &gt; 0) {
+    session.client.auth(cfg.pass, function(err) {
+      if (err) {
+        throw err;
+      }
+    });
+  }
+
+  if (con.db) {
+    session.client.select(con.db);
+    session.client.on('connect', function() {
+      session.client.send_anyways = true;
+      session.client.select(con.db);
+      session.client.send_anyways = false;
+    });
+  }
+
+  // handle events
+  session.client.on('error', function (err) {
+    cfg.logger.error(session.name + ': database ERROR');
+    cfg.logger.error(err);
+  });
+  session.client.on('connect', function () {
+    cfg.logger.info(session.name + ': connected to Redis database');
+  });
+
+<span id='node_modules-restify_session-method-createSid'>  /**
+</span>   * Create session identifier
+   *
+   * @param {Function} callback Function called when the identifier is created
+   * @return {callback(err, sid)} The callback to execute as result
+   * @param {String} callback.err Error if occurred
+   * @param {String} callback.sid session identifier
+   * @private
+   */
+  session.createSid = function(callback) {
+    var chars  = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz',
+        codes  = [],
+        cLen   = chars.length,
+        len    = cfg.sidLength,
+        sid    = '',
+        i      = 0,
+        rNum;
+
+    codes.length = cLen;
+
+    // generate secure randoms
+    rnd(codes);
+
+    for ( i = 0; i &lt; len; i++) {
+      rNum = Math.floor(codes[i] * cLen / 255);
+      sid += chars.substring(rNum, rNum + 1);
+    }
+
+    session.client.exists(sid, function(err, exists) {
+      if (err &amp;&amp; cfg.debug) {
+        cfg.logger.error(session.name + ': sid creation ERROR');
+        cfg.logger.error(err);
+      }
+      if (exists === 1) {
+        session.createSid(callback);
+      } else {
+        if (cfg.debug) {
+          cfg.logger.debug(session.name + ': sid created ' + sid);
+        }
+        callback.call(session, err, sid);
+      }
+    });
+  };
+
+<span id='node_modules-restify_session-method-save'>  /**
+</span>   * Save session data
+   *
+   * @param {String} sid session identifier
+   * @param {Object} data session data
+   * @param {Function} callback Function called when the session is saved
+   * @return {callback(err, status)} The callback to execute as result
+   * @param {String} callback.err Error if occurred
+   * @param {String} callback.status Result from Redis query
+   */
+  session.save = function(sid, data, callback) {
+    if (isNull(sid)) {
+      if (callback) {
+        callback.call(session, 'no sid given', undefined);
+      }
+      return;
+    }
+
+    var ttl  = session.config.ttl,
+      info = JSON.stringify(data),
+
+      setCallback = function(err, status) {
+        if (err &amp;&amp; cfg.debug) {
+          cfg.logger.log(session.name + ': saving sid ' + sid + ' ERROR');
+          cfg.logger.log(err);
+        }
+        if (callback) {
+          callback.call(session, err, status);
+        }
+      };
+
+    if (cfg.persist) {
+      session.client.set(sid, info, setCallback);
+    } else {
+      session.client.setex(sid, ttl, info, setCallback);
+    }
+  };
+
+<span id='node_modules-restify_session-method-load'>  /**
+</span>   * Load session data
+   *
+   * @param {String} sid session identifier
+   * @param {Function} callback Function called when the session is loaded
+   * @return {callback(err, data)} The callback to execute as result
+   * @param {String} callback.err Error if occurred
+   * @param {Object} callback.data session data
+   */
+  session.load = function(sid, callback) {
+    if (isNull(sid)) {
+      if (callback) {
+        callback.call(session, 'no sid given', undefined);
+      }
+      return;
+    }
+    session.client.get(sid, function(err, info) {
+      var data;
+      if (err) {
+        if (cfg.debug) {
+          cfg.logger.debug(session.name + ': sid ' + sid + ' loading ERROR');
+          cfg.logger.debug(err);
+        }
+      } else if (!isNull(info)) {
+        data = JSON.parse(info.toString());
+      }
+      if (callback) {
+        callback.call(session, err, data);
+      }
+    });
+  };
+
+<span id='node_modules-restify_session-method-refresh'>  /**
+</span>   * Update the ttl for the session
+   *
+   * @param {String} sid session identifier
+   * @param {Function} callback Function called when the session is refreshed
+   * @return {callback(err, active)} The callback to execute as result
+   * @param {String} callback.err Error if occurred
+   * @param {Boolean} callback.active True if the sid is active (not expired)
+   */
+  session.refresh = function(sid, callback) {
+    if (isNull(sid)) {
+      if (callback) {
+        callback.call(session, 'no sid given', false);
+      }
+      return;
+    }
+    if (cfg.persist) {
+      callback.call(session, undefined, true);
+      return;
+    }
+    session.client.expire(sid, session.config.ttl, function(err, status){
+      if (err &amp;&amp; cfg.debug) {
+        cfg.logger.debug(session.name + ': sid ' + sid + ' refreshing ERROR');
+        cfg.logger.debug(err);
+      }
+      if (callback) {
+        callback.call(session, err, (status === 1));
+      }
+    });
+  };
+
+<span id='node_modules-restify_session-method-exists'>  /**
+</span>   * Check if a session identifier exists
+   *
+   * @param {String} sid session identifier
+   * @param {Function} callback Function called when the session identifier is verified
+   * @return {callback(err, exists)} The callback to execute as result
+   * @param {String} callback.err Error if occurred
+   * @param {Boolean} callback.exists Return true if the session exists
+   */
+  session.exists = function(sid, callback) {
+    if (isNull(sid)) {
+      callback.call(session, undefined, false);
+      return;
+    }
+    session.client.exists(sid, function(err, status) {
+      if (err &amp;&amp; cfg.debug) {
+        cfg.logger.debug(session.name + ': sid ' + sid + ' does not exist ERROR');
+        cfg.logger.debug(err);
+      }
+      callback.call(session, err, (status === 1) );
+    });
+  };
+
+<span id='node_modules-restify_session-method-getAllKeys'>  /**
+</span>   * Get all session identifier
+   *
+   * @param {Function} callback Function called when the session identifiers are loaded
+   * @return {callback(err, keys)} The callback to execute as result
+   * @param {String} callback.err Error if occurred
+   * @param {Array} callback.keys All valid session identifiers
+   * @private
+   */
+  session.getAllKeys = function(callback) {
+    if (!cfg.debug) {
+      cfg.logger.debug(session.name + ': unable to get all session identifiers when not in debug mode');
+      if (callback) {
+        callback.call(session, 'unable to get all session identifiers when not in debug mode');
+      }
+      return;
+    }
+    session.client.keys('*', function(err, keys) {
+      if (callback) {
+        callback.call(session, err, keys);
+      }
+    });
+  };
+
+<span id='node_modules-restify_session-method-destroy'>  /**
+</span>   * Destroy a session
+   *
+   * @param {String} sid session identifier
+   * @param {Function} callback Function called when finishing
+   * @return {callback(err, status)} The callback to execute as result
+   * @param {String} callback.err Returned error if occurred
+   * @param {String} callback.status Returned status code from Redis
+   * @private
+   */
+  session.destroy = function(sid, callback) {
+    if (isNull(sid)) {
+      if (callback) {
+        callback.call(session, 'no sid given', 0);
+      }
+      return;
+    }
+    session.client.del(sid, function(status) {
+      if (callback) {
+        callback.call(session, undefined, status);
+      }
+    });
+  };
+
+<span id='node_modules-restify_session-method-destroyAll'>  /**
+</span>   * Destroy all sessions
+   *
+   * @param {Function} callback Function called when finishing
+   * @return {callback(status)} The callback to execute as result
+   * @param {String} callback.err Returned error if occurred
+   * @param {String} callback.status Returned status code from Redis
+   * @private
+   */
+  session.destroyAll = function(callback) {
+    if (!cfg.debug) {
+      cfg.logger.debug(session.name + ': unable to destroy all sessions when not in debug mode');
+      if (callback) {
+        callback.call(session, 'unable to destroy all sessions when not in debug mode');
+      }
+      return;
+    }
+    session.client.flushall(function(status) {
+      if (callback) {
+        callback.call(session, undefined, status);
+      }
+    });
+  };
+
+<span id='node_modules-restify_session-method-setSessionData'>  /**
+</span>   * Set data in session object to use in other middlewares below this
+   *
+   * @param {String} sid The session identifier
+   * @param {{sid: String, ...}} data The data to store in session
+   * @param {{session: data, ...}} req Client request with new __session__ property
+   * containing session data
+   * @param {Object} res Server response
+   * @param {Function} next Calback to execute at the end of saving
+   */
+  session.setSessionData = function(sid, data, req, res, next) {
+    if (isNull(sid)) {
+      next();
+      return;
+    }
+    if (isNull(data)) {
+      data = {};
+    }
+    data.sid  = sid;
+    session.save(sid, data, function(err, status){
+      if (!err) {
+        // set session in request to use it in other middlewares
+        // attached below this
+        req.session = data;
+        res.setHeader(cfg.sidHeader, sid);
+      }
+      next();
+    });
+  };
+
+<span id='node_modules-restify_session-method-sessionManager'>  /**
+</span>   * Manage session in http requests
+   *
+   * @param {Object} req Request from client
+   * @param {Object} res Response from server
+   * @param {Function} next Next function to execute in server
+   */
+  session.sessionManager = function (req, res, next) {
+    if (cfg.debug) {
+      cfg.logger.log(session.name + ': request url: ' + req.url);
+    }
+    var reqSid = req.headers[session.config.sidHeader.toLowerCase()];
+    session.exists(reqSid, function(existErr, active){
+      if (existErr) {
+        next();
+      } else if (active) {
+        // load the session
+        session.load(reqSid, function(loadErr, data){
+          if (!loadErr) {
+            session.setSessionData(reqSid, data, req, res, next);
+          } else {
+            next();
+          }
+        });
+      } else {
+        session.createSid(function(createErr, sid) {
+          if (!createErr) {
+            session.setSessionData(sid, {}, req, res, next);
+          } else {
+            next();
+          }
+        });
+      }
+    });
+  };
+
+  return session;
+};
+</pre>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "name": "restify-session",
+  "version": "1.0.0",
+  "description": "Session manager for REST server without cookies",
+  "private": false,
+  "preferGlobal": false,
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --require should --reporter spec --recursive"
+  },
+  "dependencies": {
+    "redis": "0.10.x",
+    "restify": "2.7.x",
+    "object_utils": "*",
+    "secure-rnd": "*"
+  },
+  "analyze": false,
+  "devDependencies": {
+    "mocha": "1.x",
+    "supertest": "0.10.x",
+    "should": "3.x"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mgesmundo/restify-session.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mgesmundo/restify-session/issues"
+  },
+  "keywords": [
+    "session",
+    "redis",
+    "cookies"
+  ],
+  "author": "Marcello Gesmundo",
+  "license": "MIT",
+  "engines": {
+    "node": ">=0.8"
+  }
+}
