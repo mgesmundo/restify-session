@@ -1,6 +1,6 @@
 {
   "name": "restify-session",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Session manager for REST server without cookies",
   "private": false,
   "preferGlobal": false,
