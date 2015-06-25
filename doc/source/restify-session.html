@@ -17,16 +17,16 @@
 <body onload="prettyPrint(); highlight();">
   <pre class="prettyprint lang-js"><span id='node_modules-restify_session'>/**
 </span> * @class node_modules.restify_session
- * 
+ *
  * @author Marcello Gesmundo
- * 
+ *
  * This module manage session for a restify server without cookies. It uses Redis (&gt;=2.0.0) as fast session store.
  * Derived from redis-session.
- * 
+ *
  * # Example
- * 
- *      var restify = require('restify'),
- *          session = require('restify-session')({
+ *
+ *      var restify = require(&#39;restify&#39;),
+ *          session = require(&#39;restify-session&#39;)({
  *              debug : true,
  *              ttl   : 2
  *          });
@@ -36,7 +36,7 @@
  *      server.use(session.sessionManager)
  *
  *      // attach a route
- *      server.get('/', function(req, res, next){
+ *      server.get(&#39;/&#39;, function(req, res, next){
  *         res.send({ success: true, session: req.session });
  *         return next();
  *      });
@@ -61,11 +61,11 @@
  *      Session-Id ViS5pHE5n8McblTATbyFUJTGJyzVFeXOcAEZ41Zs
  *
  * For more information see test/test.js into package folder.
- * 
- *  
- * 
+ *
+ *
+ *
  * # License
- * 
+ *
  * Copyright (c) 2012 Mitchell Simoens (https://github.com/mitchellsimoens/redis-session)
  *
  * Copyright (c) 2012-2014 Yoovant by Marcello Gesmundo. All rights reserved.
@@ -73,7 +73,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
  * met:
- * 
+ *
  *    * Redistributions of source code must retain the above copyright
  *      notice, this list of conditions and the following disclaimer.
  *    * Redistributions in binary form must reproduce the above
@@ -83,7 +83,7 @@
  *    * Neither the name of Yoovant nor the names of its
  *      contributors may be used to endorse or promote products derived
  *      from this software without specific prior written permission.
- *      
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -99,15 +99,15 @@
 module.exports = function(config) {
   // namespace
   var session = {};
-  var redis   = require('redis');
-  var utils   = require('object_utils');
-  var Random  = require('secure-rnd');
+  var redis   = require(&#39;redis&#39;);
+  var utils   = require(&#39;object_utils&#39;);
+  var Random  = require(&#39;secure-rnd&#39;);
   var rnd     = new Random();
 <span id='global-property-name'>  /**
 </span>   * @ignore
    * @private
    */
-  session.name = 'session';
+  session.name = &#39;session&#39;;
 
 <span id='global-property-merge'>  /**
 </span>   * @ignore
@@ -145,34 +145,34 @@ module.exports = function(config) {
 <span id='node_modules-restify_session-cfg-connection'>    /**
 </span>     * @cfg {connection} connection REDIS connection information
      * @cfg {Number} connection.port=6379 REDIS port
-     * @cfg {String} connection.host='127.0.0.1' REDIS host
+     * @cfg {String} connection.host=&#39;127.0.0.1&#39; REDIS host
      * @cfg {String} [connection.db] REDIS database
      * @cfg {String} [connection.user] REDIS user
      * @cfg {String} [connection.pass] REDIS password
      */
     connection: {
       port: 6379,
-      host: '127.0.0.1',
+      host: &#39;127.0.0.1&#39;,
       db  : undefined,
       user: undefined,
       pass: undefined
     },
 <span id='node_modules-restify_session-cfg-sidHeader'>    /**
-</span>     * @cfg {String} sidHeader='Session-Id' The Header section name to store the session identifier
+</span>     * @cfg {String} sidHeader=&#39;Session-Id&#39; The Header section name to store the session identifier
      */
-    sidHeader: 'Session-Id'
+    sidHeader: &#39;Session-Id&#39;
   };
 
   // merge new config with default config
   session.merge(session.config, config);
 
-  if ('function' !== typeof session.config.logger.debug) {
+  if (&#39;function&#39; !== typeof session.config.logger.debug) {
     session.config.logger.debug = session.config.logger.log;
   }
-  if ('function' !== typeof session.config.logger.error) {
+  if (&#39;function&#39; !== typeof session.config.logger.error) {
     session.config.logger.error = session.config.logger.log;
   }
-  if ('function' !== typeof session.config.logger.info) {
+  if (&#39;function&#39; !== typeof session.config.logger.info) {
     session.config.logger.info = session.config.logger.log;
   }
 
@@ -180,12 +180,12 @@ module.exports = function(config) {
       con = cfg.connection;
 
   // create redis client
-  session.client = new redis.createClient(con.port, cfg.host, con);
+  session.client = new redis.createClient(con.port, con.host, con);
 
   var isNull = utils.isNull;
 
   if (con.pass &amp;&amp; con.pass.length &gt; 0) {
-    session.client.auth(cfg.pass, function(err) {
+    session.client.auth(con.pass, function(err) {
       if (err) {
         throw err;
       }
@@ -194,7 +194,7 @@ module.exports = function(config) {
 
   if (con.db) {
     session.client.select(con.db);
-    session.client.on('connect', function() {
+    session.client.on(&#39;connect&#39;, function() {
       session.client.send_anyways = true;
       session.client.select(con.db);
       session.client.send_anyways = false;
@@ -202,12 +202,12 @@ module.exports = function(config) {
   }
 
   // handle events
-  session.client.on('error', function (err) {
-    cfg.logger.error(session.name + ': database ERROR');
+  session.client.on(&#39;error&#39;, function (err) {
+    cfg.logger.error(session.name + &#39;: database ERROR&#39;);
     cfg.logger.error(err);
   });
-  session.client.on('connect', function () {
-    cfg.logger.info(session.name + ': connected to Redis database');
+  session.client.on(&#39;connect&#39;, function () {
+    cfg.logger.info(session.name + &#39;: connected to Redis database&#39;);
   });
 
 <span id='node_modules-restify_session-method-createSid'>  /**
@@ -220,11 +220,11 @@ module.exports = function(config) {
    * @private
    */
   session.createSid = function(callback) {
-    var chars  = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz',
+    var chars  = &#39;0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz&#39;,
         codes  = [],
         cLen   = chars.length,
         len    = cfg.sidLength,
-        sid    = '',
+        sid    = &#39;&#39;,
         i      = 0,
         rNum;
 
@@ -240,14 +240,14 @@ module.exports = function(config) {
 
     session.client.exists(sid, function(err, exists) {
       if (err &amp;&amp; cfg.debug) {
-        cfg.logger.error(session.name + ': sid creation ERROR');
+        cfg.logger.error(session.name + &#39;: sid creation ERROR&#39;);
         cfg.logger.error(err);
       }
       if (exists === 1) {
         session.createSid(callback);
       } else {
         if (cfg.debug) {
-          cfg.logger.debug(session.name + ': sid created ' + sid);
+          cfg.logger.debug(session.name + &#39;: sid created &#39; + sid);
         }
         callback.call(session, err, sid);
       }
@@ -267,7 +267,7 @@ module.exports = function(config) {
   session.save = function(sid, data, callback) {
     if (isNull(sid)) {
       if (callback) {
-        callback.call(session, 'no sid given', undefined);
+        callback.call(session, &#39;no sid given&#39;, undefined);
       }
       return;
     }
@@ -277,8 +277,8 @@ module.exports = function(config) {
 
       setCallback = function(err, status) {
         if (err &amp;&amp; cfg.debug) {
-          cfg.logger.log(session.name + ': saving sid ' + sid + ' ERROR');
-          cfg.logger.log(err);
+          cfg.logger.error(session.name + &#39;: saving sid &#39; + sid + &#39; ERROR&#39;);
+          cfg.logger.error(err);
         }
         if (callback) {
           callback.call(session, err, status);
@@ -304,7 +304,7 @@ module.exports = function(config) {
   session.load = function(sid, callback) {
     if (isNull(sid)) {
       if (callback) {
-        callback.call(session, 'no sid given', undefined);
+        callback.call(session, &#39;no sid given&#39;, undefined);
       }
       return;
     }
@@ -312,7 +312,7 @@ module.exports = function(config) {
       var data;
       if (err) {
         if (cfg.debug) {
-          cfg.logger.debug(session.name + ': sid ' + sid + ' loading ERROR');
+          cfg.logger.debug(session.name + &#39;: sid &#39; + sid + &#39; loading ERROR&#39;);
           cfg.logger.debug(err);
         }
       } else if (!isNull(info)) {
@@ -336,7 +336,7 @@ module.exports = function(config) {
   session.refresh = function(sid, callback) {
     if (isNull(sid)) {
       if (callback) {
-        callback.call(session, 'no sid given', false);
+        callback.call(session, &#39;no sid given&#39;, false);
       }
       return;
     }
@@ -346,7 +346,7 @@ module.exports = function(config) {
     }
     session.client.expire(sid, session.config.ttl, function(err, status){
       if (err &amp;&amp; cfg.debug) {
-        cfg.logger.debug(session.name + ': sid ' + sid + ' refreshing ERROR');
+        cfg.logger.debug(session.name + &#39;: sid &#39; + sid + &#39; refreshing ERROR&#39;);
         cfg.logger.debug(err);
       }
       if (callback) {
@@ -371,7 +371,7 @@ module.exports = function(config) {
     }
     session.client.exists(sid, function(err, status) {
       if (err &amp;&amp; cfg.debug) {
-        cfg.logger.debug(session.name + ': sid ' + sid + ' does not exist ERROR');
+        cfg.logger.debug(session.name + &#39;: sid &#39; + sid + &#39; does not exist ERROR&#39;);
         cfg.logger.debug(err);
       }
       callback.call(session, err, (status === 1) );
@@ -389,13 +389,13 @@ module.exports = function(config) {
    */
   session.getAllKeys = function(callback) {
     if (!cfg.debug) {
-      cfg.logger.debug(session.name + ': unable to get all session identifiers when not in debug mode');
+      cfg.logger.debug(session.name + &#39;: unable to get all session identifiers when not in debug mode&#39;);
       if (callback) {
-        callback.call(session, 'unable to get all session identifiers when not in debug mode');
+        callback.call(session, &#39;unable to get all session identifiers when not in debug mode&#39;);
       }
       return;
     }
-    session.client.keys('*', function(err, keys) {
+    session.client.keys(&#39;*&#39;, function(err, keys) {
       if (callback) {
         callback.call(session, err, keys);
       }
@@ -415,7 +415,7 @@ module.exports = function(config) {
   session.destroy = function(sid, callback) {
     if (isNull(sid)) {
       if (callback) {
-        callback.call(session, 'no sid given', 0);
+        callback.call(session, &#39;no sid given&#39;, 0);
       }
       return;
     }
@@ -437,9 +437,9 @@ module.exports = function(config) {
    */
   session.destroyAll = function(callback) {
     if (!cfg.debug) {
-      cfg.logger.debug(session.name + ': unable to destroy all sessions when not in debug mode');
+      cfg.logger.debug(session.name + &#39;: unable to destroy all sessions when not in debug mode&#39;);
       if (callback) {
-        callback.call(session, 'unable to destroy all sessions when not in debug mode');
+        callback.call(session, &#39;unable to destroy all sessions when not in debug mode&#39;);
       }
       return;
     }
@@ -480,6 +480,16 @@ module.exports = function(config) {
     });
   };
 
+<span id='node_modules-restify_session-method-disconnect'>  /**
+</span>   * Closes the connection to the redis server
+   *
+   * @param  {Function} callback Callback to execute once connection is closed
+   */
+  session.disconnect = function (callback) {
+    session.client.quit();
+    session.client.on(&#39;end&#39;, callback);
+  };
+
 <span id='node_modules-restify_session-method-sessionManager'>  /**
 </span>   * Manage session in http requests
    *
@@ -489,7 +499,7 @@ module.exports = function(config) {
    */
   session.sessionManager = function (req, res, next) {
     if (cfg.debug) {
-      cfg.logger.log(session.name + ': request url: ' + req.url);
+      cfg.logger.debug(session.name + &#39;: request url: &#39; + req.url);
     }
     var reqSid = req.headers[session.config.sidHeader.toLowerCase()];
     session.exists(reqSid, function(existErr, active){
