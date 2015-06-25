@@ -49,7 +49,7 @@ describe('Restify session manager', function(){
         done();
       });
     });
-    it('should whait for ttl and verify session data empty', function(done){
+    it('should wait for ttl and verify session data empty', function(done){
       this.timeout(session.config.ttl * 1000 + 500);
       var defer = setInterval(function() {
         session.exists(sid, function(err, exists) {
@@ -110,6 +110,16 @@ describe('Restify session manager', function(){
     });
     it('should destroy last session', function(done){
       destroySession(this, sid, done);
+    });
+  });
+  // This test needs to be last since it destroys the connection to redis
+  describe('disconnect from session', function () {
+    it('should not be connected to the redis DB anymore', function (done) {
+      session.client.connected.should.be.true;
+      session.disconnect(function () {
+        session.client.connected.should.be.false;
+        done();
+      });
     });
   });
 });
