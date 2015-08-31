@@ -9,9 +9,9 @@
     "test": "mocha --require should --reporter spec --recursive"
   },
   "dependencies": {
-    "redis": "0.10.x",
-    "restify": "2.7.x",
     "object_utils": "*",
+    "redis": "^0.12.1",
+    "restify": "^4.0.0",
     "secure-rnd": "*"
   },
   "analyze": false,
